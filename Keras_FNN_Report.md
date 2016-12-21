@@ -1,3 +1,6 @@
 Report for Keras FNN
 ==============
-This is a digit recornation for [MNIST database of handwritten digits](http://yann.lecun.com/exdb/mnist/)
+Digit recornation lab for [MNIST database of handwritten digits](http://yann.lecun.com/exdb/mnist/)
+
+Based on [Keras](https://keras.io/)
+
