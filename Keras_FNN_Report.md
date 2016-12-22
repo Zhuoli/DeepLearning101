@@ -9,4 +9,4 @@ Based on [Keras](https://keras.io/)
 ## How the pre-processing would affect training accuracy
 * Min-Max Normalize value to [0,1]
 
-![Fig 1](plots/deepLearning101/kerasKNN/TrainingValidationAccuarcy.png =250x)
+![Fig 1](plots/deepLearning101/kerasKNN/TrainingValidationAccuarcy.png =250x250)
