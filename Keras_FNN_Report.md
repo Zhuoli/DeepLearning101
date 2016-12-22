@@ -4,4 +4,4 @@ Digit recornation lab for [MNIST database of handwritten digits](http://yann.lec
 
 Based on [Keras](https://keras.io/)
 
-![Training Validation Accuarcy](plots/kerasKNN/TrainingValidationAccuarcy.png)
+![Training Validation Accuarcy](plots/deepLearning101/kerasKNN/TrainingValidationAccuarcy.png)
