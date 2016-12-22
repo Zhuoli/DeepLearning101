@@ -6,6 +6,6 @@ This code aimed to train a FNN to recoginize the digits from MNIST handwritten d
 
 Based on [Keras](https://keras.io/)
 
-## Training accuracy with and without min-max normalize input value
+## How the pre-processing would affect training accuracy
 
-![Training Validation accuracy](plots/deepLearning101/kerasKNN/TrainingValidationAccuarcy.png)
+![Min-Max Normalize value to [0,1]](plots/deepLearning101/kerasKNN/TrainingValidationAccuarcy.png)
