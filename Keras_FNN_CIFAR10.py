@@ -18,14 +18,14 @@ import time
 
 
 # Min-Max Normalize value to [0, 1]
-def PreprocessDataset():
+def PreprocessDataset(loadMethod, categoriesNum):
     # from sklearn import preprocessing
     ## Load MNIST dataset of handwritten digits
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    (x_train, y_train), (x_test, y_test) = loadMethod()
     ## Transform labels to one-hot encoding
     ## i.e., from '7' to [0,0,0,0,0,0,0,1,0,0]
-    y_train = np_utils.to_categorical(y_train, 10)
-    y_test = np_utils.to_categorical(y_test, 10)
+    y_train = np_utils.to_categorical(y_train, categoriesNum)
+    y_test = np_utils.to_categorical(y_test, categoriesNum)
 
     ## Process features. Set numeric type
     x_train = x_train.astype('float32')
@@ -33,8 +33,14 @@ def PreprocessDataset():
 
     ## X_train has 6000 samples with 28x28 features
     ## Reshape from a matrix of 28 x 28 pixels to 1-D vector of 784 dimensions
-    x_train = np.reshape(x_train, (60000, 784))
-    x_test = np.reshape(x_test, (10000, 784))
+    xtrain_shape = x_train.shape
+    xtest_shape = x_test.shape
+    if (len(xtrain_shape) == 3):
+        xtrain_shape = (xtrain_shape[0], xtrain_shape[1], xtrain_shape[2], 1)
+    if (len(xtest_shape) == 3):
+        xtest_shape = (xtest_shape[0], xtest_shape[1], xtest_shape[2], 1)
+    x_train = np.reshape(x_train, (xtrain_shape[0], xtrain_shape[1] * xtrain_shape[2] * xtrain_shape[3]))
+    x_test = np.reshape(x_test, (xtest_shape[0], xtest_shape[1] * xtest_shape[2] * xtest_shape[3]))
 
     ################################################################
     # Activity 1 (Pre-processing):
@@ -55,42 +61,14 @@ def PreprocessDataset():
     return x_train, x_test, y_train, y_test
 
 
-x_train, x_test, y_train, y_test = PreprocessDataset()
-print("x_train type: " + str(x_train.shape))
-print("x_test type: " + str(x_test.shape))
-print("y_train type: " + str(y_train.shape))
-print("y_test type: " + str(y_test.shape))
-
-## Show part of training data: features and labels
-## Each row is a sample, and each column represents a feature.
-print("{:^43}".format("x"), "|", "{:^4}".format("y"))
-print("=" * 50)
-for sample_id in range(10):
-    print("{:.2f} {:.2f} ... {:.2f} {:.2f} {:.2f} ...  {:.2f} {:.2f}".format(
-        x_train[sample_id][0], x_train[sample_id][1],
-        x_train[sample_id][156], x_train[sample_id][157], x_train[sample_id][158],
-        x_train[sample_id][-2], x_train[sample_id][-1]), "| ",
-        "{:.0f}".format(y_train[sample_id][0]))
-
-
 # Two layer with shrink width network
 # Using Relu
 # Using crossentropy
 # Without Dropput
-def DefineModel():
-    ################################################################
-    # Activity 2 (Network Structure):
-    # Group A: uses only 1 layer
-    second_layer_width = 128
-    #
-    # Group B: uses 2 layers of a tower-shaped (same width) network.
-    # second_layer_width = 128
-    #
-    # Group C: uses 2 layers of a pyramid-shaped (shrink width) network.
-    # second_layer_width = 64
-    ################################################################
+def DefineModel(input_dim):
     first_layer_width = 128
-    # second_layer_width = 64
+    second_layer_width = 64
+    third_layer_width = 0
 
     ################################################################
     # Activity 3 (Activation Function):
@@ -117,17 +95,6 @@ def DefineModel():
     # loss_function = 'mean_squared_error'
     ################################################################
     loss_function = 'categorical_crossentropy'
-
-    #################################################################
-    # Activity 5 (Dropout):
-    # Group A uses 0% dropout.
-    #
-    # Group B uses 50% dropout.
-    # dropout_rate = 0.5
-    #
-    # Group C uses 90% dropout.
-    # dropout_rate = 0.9
-    #################################################################
     dropout_rate = 0.0
 
     ################################################################
@@ -143,17 +110,6 @@ def DefineModel():
     ################################################################
     weight_regularizer = None
 
-    ################################################################
-    # Activity 8 (Learning Rate):
-    # Group A uses learning rate of 0.1.
-    # learning_rate = 0.1
-    #
-    # Group B uses learning rate of 0.01.
-    # learning_rate = 0.01
-    #
-    # Group C uses learning rate of 0.5.
-    # learning_rate = 0.5
-    ################################################################
     learning_rate = 0.1
 
     ## Initialize model.
@@ -162,7 +118,7 @@ def DefineModel():
     ## First hidden layer with 'first_layer_width' neurons.
     ## Also need to specify input dimension.
     ## 'Dense' means fully-connected.
-    model.add(Dense(first_layer_width, input_dim=784, W_regularizer=weight_regularizer))
+    model.add(Dense(first_layer_width, input_dim=input_dim, W_regularizer=weight_regularizer))
     model.add(Activation(activation_func))
     if dropout_rate > 0:
         model.add(Dropout(0.5))
@@ -174,8 +130,12 @@ def DefineModel():
         if dropout_rate > 0:
             model.add(Dropout(0.5))
 
-            ## Last layer has the same dimension as the number of classes
-    model.add(Dense(10))
+    if third_layer_width > 0:
+        model.add(Dense(third_layer_width))
+        model.add(Activation(activation_func))
+
+    ## Last layer has the same dimension as the number of classes
+    model.add(Dense(NumOfCategories))
     ## For classification, the activation is softmax
     model.add(Activation('softmax'))
     ## Define optimizer. In this tutorial/codelab, we select SGD.
@@ -187,7 +147,7 @@ def DefineModel():
     return model
 
 
-def TrainModel(data=None, epochs=3):
+def TrainModel(data=None, epochs=20):
     ################################################################
     # Activity 7 (Mini-batch):
     # Group A uses mini-batch of size 128.
@@ -201,7 +161,7 @@ def TrainModel(data=None, epochs=3):
     ################################################################
     batch = 128
     start_time = time.time()
-    model = DefineModel()
+    model = DefineModel(data[0].shape[1])
     if data is None:
         print("Must provide data.")
         return
@@ -212,9 +172,6 @@ def TrainModel(data=None, epochs=3):
                         validation_data=(x_train[55000:], y_train[55000:]))
     print("Training took {0} seconds.".format(time.time() - start_time))
     return model, history
-
-
-trained_model, training_history = TrainModel(data=[x_train, x_test, y_train, y_test])
 
 
 def TestModel(model=None, data=None):
@@ -229,25 +186,20 @@ def TestModel(model=None, data=None):
     return scores
 
 
-test_score = TestModel(model=trained_model, data=[x_test, y_test])
-print("Test loss {:.4f}, accuracy {:.2f}%".format(test_score[0], test_score[1] * 100))
-
-
 ## DRAW BELOW
 
 def PlotHistory(train_value, test_value, value_is_loss_or_acc):
     f, ax = plt.subplots()
     ax.plot([None] + train_value, 'o-')
     ax.plot([None] + test_value, 'x-')
-    # if "Accuracy" in value_is_loss_or_acc:
-    #     ax.set_ylim(0, 1)
+    if "Accuracy" in value_is_loss_or_acc:
+        ax.set_ylim(0, 1)
     ## Plot legend and use the best location automatically: loc = 0.
     ax.legend(['Train ' + value_is_loss_or_acc, 'Validation ' + value_is_loss_or_acc], loc=0)
     ax.set_title('Training/Validation ' + value_is_loss_or_acc + ' per Epoch')
     ax.set_xlabel('Epoch')
     ax.set_ylabel(value_is_loss_or_acc)
     plt.show()
-
 
 
 def drawWeightHistogram(x):
@@ -262,18 +214,17 @@ def drawWeightHistogram(x):
     plt.show()
 
 
-
-def ShowInputImage(data):
+def ShowInputImage(data, datashape):
     """Visualize input image."""
     plot = plt.figure()
     plot.set_size_inches(2, 2)
-    plt.imshow(np.reshape(-data, (28, 28)), cmap='Greys_r')
+    plt.imshow(np.reshape(-data, datashape), cmap='Greys_r')
     plt.title("Input Image")
     plt.axis('off')
     plt.show()
 
 
-def ShowHiddenLayerOutput(input_data, target_layer_num):
+def ShowHiddenLayerOutput(trained_model, input_data, target_layer_num):
     """Visualize output from the target hidden layer."""
     from keras import backend as K
     ## Backend converter: to TensorFlow
@@ -288,7 +239,7 @@ def ShowHiddenLayerOutput(input_data, target_layer_num):
     plt.show()
 
 
-def ShowFinalOutput(input_data):
+def ShowFinalOutput(trained_model, input_data):
     """Calculate final prediction."""
     from keras import backend as K
     ## Backend converter: to TensorFlow
@@ -298,10 +249,43 @@ def ShowFinalOutput(input_data):
     print("Final prediction: " + str(np.argmax(last_layer_out[0][0])))
 
 
+NumOfCategories = 10;
+
+x_train, x_test, y_train, y_test = PreprocessDataset(mnist.load_data, NumOfCategories)
+print("x_train type: " + str(x_train.shape))
+print("x_test type: " + str(x_test.shape))
+print("y_train type: " + str(y_train.shape))
+print("y_test type: " + str(y_test.shape))
+
+#
+trained_model, training_history = TrainModel(data=[x_train, x_test, y_train, y_test], epochs=20)
+#
+#
+#
+test_score = TestModel(model=trained_model, data=[x_test, y_test])
+print("Test loss {:.4f}, accuracy {:.2f}%".format(test_score[0], test_score[1] * 100))
+#
+#
 PlotHistory(training_history.history['loss'], training_history.history['val_loss'], 'Loss')
 PlotHistory(training_history.history['acc'], training_history.history['val_acc'], 'Accuracy')
+print(y_test.shape[0])
+print(y_test[0])
+
+X = 0
+groupX = []
+for idx in range(0, y_test.shape[0]):
+    if y_test[idx][X] == 1.0:
+        groupX.append(idx)
+
+if (len(groupX) == 0):
+    print("No images found in group: " + str(X))
+
+for idx in groupX[:5]:
+    ShowInputImage(x_test[idx], (28,28))
+
+
 # w1 = trained_model.layers[0].get_weights()[0].flatten()
 # drawWeightHistogram(w1)
-# ShowInputImage(x_test[0])
+# (x_test[0])
 # ShowHiddenLayerOutput(x_test, 1)
 # ShowFinalOutput(x_test)
