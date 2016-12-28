@@ -14,3 +14,12 @@ Based on [Keras](https://keras.io/)
 <img src="plots/deepLearning101/kerasKNN/TrainingValidationAccuarcy.png" width="400px" height="400px" />
 <img src="plots/deepLearning101/kerasKNN/TrainingValidationAccuarcy-1to1.png" width="400px" height="400px" />
 <img src="plots/deepLearning101/kerasKNN/TrainingValidationAccuarcy255.png" width="400px" height="400px" />
+
+## How the activation function would affect training accuarcy
+
+* Relu
+* Tanh
+* Sigmoid
+<img src="plots/deepLearning101/kerasKNN/relu.png" width="400px" height="400px" />
+<img src="plots/deepLearning101/kerasKNN/tanh.png" width="400px" height="400px" />
+<img src="plots/deepLearning101/kerasKNN/sigmoid.png" width="400px" height="400px" />
