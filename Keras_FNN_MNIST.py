@@ -98,12 +98,12 @@ def DefineModel():
     # activation_func = 'relu'
     #
     # Group B uses Sigmoid.
-    # activation_func = 'sigmoid'
+    activation_func = 'sigmoid'
     #
     # Group C uses Tanh.
     # activation_func = 'tanh'
     ################################################################
-    activation_func = 'relu'
+    # activation_func = 'relu'
 
     ################################################################
     # Activity 4 (Loss Function):
@@ -298,7 +298,7 @@ def ShowFinalOutput(input_data):
     print("Final prediction: " + str(np.argmax(last_layer_out[0][0])))
 
 
-PlotHistory(training_history.history['loss'], training_history.history['val_loss'], 'Loss')
+# PlotHistory(training_history.history['loss'], training_history.history['val_loss'], 'Loss')
 PlotHistory(training_history.history['acc'], training_history.history['val_acc'], 'Accuracy')
 # w1 = trained_model.layers[0].get_weights()[0].flatten()
 # drawWeightHistogram(w1)
