@@ -20,6 +20,7 @@ Based on [Keras](https://keras.io/)
 * Relu
 * Tanh
 * Sigmoid
+
 <img src="plots/deepLearning101/kerasKNN/relu.png" width="400px" height="400px" />
 <img src="plots/deepLearning101/kerasKNN/tanh.png" width="400px" height="400px" />
 <img src="plots/deepLearning101/kerasKNN/sigmoid.png" width="400px" height="400px" />
