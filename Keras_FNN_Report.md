@@ -1,6 +1,6 @@
-Report for Keras FNN
+Report for Keras FNN lab
 ==============
-This code aimed to train a FNN to recoginize the digits from MNIST handwritten dataset.
+Train a FNN to recoginize the digits from MNIST handwritten dataset.
 
 [MNIST database of handwritten digits](http://yann.lecun.com/exdb/mnist/)
 
