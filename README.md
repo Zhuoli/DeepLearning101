@@ -1,5 +1,6 @@
 # DeepLearning101
-
+* Courses:
+  1. [oxford-cs-deepnlp-2017](https://github.com/oxford-cs-deepnlp-2017/lectures)
 * Papers:
   1. [Densely Connected Convolutional Networks](https://arxiv.org/abs/1608.06993)
   2. [Highway netorks ](http://arxiv.org/pdf/1505.00387v2.pdf)
