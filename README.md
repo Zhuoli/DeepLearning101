@@ -9,3 +9,4 @@
   1. [为什么 Deep Learning 最先在语音识别和图像处理领域取得突破？](https://www.zhihu.com/question/21815490)
 
 * Lab 1: [Forward Netural Network](Keras_FNN_Report.md)
+* Lab 2:
