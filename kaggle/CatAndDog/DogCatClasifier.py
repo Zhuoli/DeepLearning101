@@ -7,8 +7,10 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.utils import np_utils
 from keras import backend as K
-
+import matplotlib.pyplot as plt
+from keras.optimizers import RMSprop
 import os, cv2, random
+from keras.callbacks import ModelCheckpoint, Callback, EarlyStopping
 
 
 CHANNELS = 3
@@ -25,26 +27,32 @@ if JUPYTER:
     TEST_DIR = '../../../input/dog_cat/test/'
 
 
-TEST_RATIO = 0.5
+TEST_RATIO = 0.7
+
+SAMPLE_SIZE_RATIO = 0.1
 
 # Image path array
-train_images = [TRAIN_DIR+i for i in os.listdir(TRAIN_DIR)] # use this for full dataset
-train_dogs =   [TRAIN_DIR+i for i in os.listdir(TRAIN_DIR) if 'dog' in i]
-train_cats =   [TRAIN_DIR+i for i in os.listdir(TRAIN_DIR) if 'cat' in i]
+images = [TRAIN_DIR+i for i in os.listdir(TRAIN_DIR)] # use this for full dataset
+dog_paths =   [TRAIN_DIR+i for i in os.listdir(TRAIN_DIR) if 'dog' in i]
+dog_paths = dog_paths[:int(len(dog_paths)*SAMPLE_SIZE_RATIO)]
 
-test_images =  [TEST_DIR+i for i in os.listdir(TEST_DIR)]
-
-train_images = train_images[:int(len(train_images) * TEST_RATIO)]
-train_dogs = train_dogs[:int(len(train_dogs) * TEST_RATIO)]
-train_cats = train_cats[:int(len(train_cats) * TEST_RATIO)]
-test_images = test_images[:int(len(test_images) * TEST_RATIO)]
+cat_paths =   [TRAIN_DIR+i for i in os.listdir(TRAIN_DIR) if 'cat' in i]
+cat_paths = cat_paths[:int(len(cat_paths)*SAMPLE_SIZE_RATIO)]
 
 
-
+train_dog_paths = dog_paths[:int(len(dog_paths) * TEST_RATIO)]
+train_cat_paths = cat_paths[:int(len(cat_paths) * TEST_RATIO)]
 # slice datasets for memory efficiency on Kaggle Kernels, delete if using full dataset
-train_images = train_dogs[:] + train_cats[:]
-random.shuffle(train_images)
-test_images =  test_images[:]
+train_image_paths = train_dog_paths[:] + train_cat_paths[:]
+
+# Pick the rest training data for validation
+test_dog_paths = dog_paths[int(len(dog_paths) * TEST_RATIO) : ]
+test_cat_paths = cat_paths[int(len(cat_paths) * TEST_RATIO) : ]
+test_image_paths = test_dog_paths[:] + test_cat_paths[:]
+
+
+random.shuffle(train_image_paths)
+random.shuffle(test_image_paths)
 
 def read_image(file_path):
     img = cv2.imread(file_path, cv2.IMREAD_COLOR) #cv2.IMREAD_GRAYSCALE
@@ -63,8 +71,8 @@ def prep_data(images):
     return data
 
 # Read image data from image path
-train = prep_data(train_images)
-test = prep_data(test_images)
+train = prep_data(train_image_paths)
+test = prep_data(test_image_paths)
 
 print("Train shape: {}".format(train.shape))
 print("Test shape: {}".format(test.shape))
@@ -74,7 +82,7 @@ print("Test shape: {}".format(test.shape))
 labels_train = []
 dog = 0
 cat = 0
-for path in train_images:
+for path in train_image_paths:
     if 'dog' in path.split('/')[-1]:
         labels_train.append(1)
         dog+=1
@@ -88,7 +96,7 @@ print("Train CAT:" + str(cat))
 labels_test = []
 dog = 0
 cat = 0
-for path in test_images:
+for path in test_image_paths:
     if 'dog' in path.split('/')[-1]:
         labels_test.append(1)
         dog+=1
@@ -99,58 +107,93 @@ for path in test_images:
 print("Test DOG: " + str(dog))
 print("Test CAT:" + str(cat))
 
-
-nb_classes = 2
 # number of convolutional filters to use
-nb_filters = 32
 # size of pooling area for max pooling
 pool_size = (2, 2)
 # convolution kernel size
 kernel_size = (3, 3)
 batch_size = 128
-nb_epoch = 12
+nb_epoch = 5
+
+def show_cats_and_dogs(idx):
+    cat = read_image(train_cat_paths[idx])
+    dog = read_image(train_dog_paths[idx])
+    pair = np.concatenate((cat, dog), axis=1)
+    plt.figure(figsize=(10,5))
+    plt.imshow(pair)
+    
+
+optimizer = RMSprop(lr=1e-4)
+objective = 'binary_crossentropy'
 
 
-# convert class vectors to binary class matrices
-Y_train = np_utils.to_categorical(labels_train, nb_classes)
-Y_test = np_utils.to_categorical(labels_test, nb_classes)
+def catdog():
+    
+    model = Sequential()
 
-model = Sequential()
+    model.add(Convolution2D(32, 3, 3, border_mode='same', input_shape=(3, ROWS, COLS), activation='relu'))
+    model.add(Convolution2D(32, 3, 3, border_mode='same', activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2), dim_ordering="th"))
 
-model.add(Convolution2D(nb_filters, 3, 3,
-                        border_mode='valid',
-                        input_shape=(64, 64, 3)))
-model.add(Activation('relu'))
-model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=pool_size))
-model.add(Dropout(0.25))
+    model.add(Convolution2D(64, 3, 3, border_mode='same', activation='relu'))
+    model.add(Convolution2D(64, 3, 3, border_mode='same', activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2), dim_ordering="th"))
+    
+    model.add(Convolution2D(128, 3, 3, border_mode='same', activation='relu'))
+    model.add(Convolution2D(128, 3, 3, border_mode='same', activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2), dim_ordering="th"))
+    
+    model.add(Convolution2D(256, 3, 3, border_mode='same', activation='relu'))
+    model.add(Convolution2D(256, 3, 3, border_mode='same', activation='relu'))
+    model.add(Convolution2D(256, 3, 3, border_mode='same', activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2), dim_ordering="th"))
 
-model.add(Flatten())
-model.add(Dense(128))
-model.add(Activation('relu'))
-model.add(Dropout(0.5))
-model.add(Dense(nb_classes))
-model.add(Activation('softmax'))
+    model.add(Convolution2D(256, 3, 3, border_mode='same', activation='relu'))
+    model.add(Convolution2D(256, 3, 3, border_mode='same', activation='relu'))
+    model.add(Convolution2D(256, 3, 3, border_mode='same', activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2), dim_ordering="th"))
 
-model.compile(loss='categorical_crossentropy',
-              optimizer='adadelta',
-              metrics=['accuracy'])
+    model.add(Flatten())
+    model.add(Dense(256, activation='relu'))
+    model.add(Dropout(0.5))
+    
+    model.add(Dense(256, activation='relu'))
+    model.add(Dropout(0.5))
 
-train = train.astype('float32')
-test = test.astype('float32')
+    model.add(Dense(1))
+    model.add(Activation('sigmoid'))
 
-train = train.reshape(train.shape[0], 64, 64, 3)
-test = test.reshape(test.shape[0], 64, 64, 3)
+    model.compile(loss=objective, optimizer=optimizer, metrics=['accuracy'])
+    return model
+
+
+model = catdog()
+
+#train = train.reshape(train.shape[0], 64, 64, 3)
+#test = test.reshape(test.shape[0], 64, 64, 3)
 print('train shape:', train.shape)
 print('test shape:', test.shape)
 
-print(train.shape, Y_train.shape, test.shape,Y_test.shape)
+print(train.shape, test.shape)
 print((ROWS, COLS, CHANNELS))
+## Callback for loss logging per epoch
+class LossHistory(Callback):
+    def on_train_begin(self, logs={}):
+        self.losses = []
+        self.val_losses = []
+        
+    def on_epoch_end(self, batch, logs={}):
+        self.losses.append(logs.get('loss'))
+        self.val_losses.append(logs.get('val_loss'))
 
-model.fit(train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
-          verbose=1, validation_data=(test, Y_test))
+early_stopping = EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='auto')   
 
-score = model.evaluate(test, Y_test, verbose=0)
+
+
+history = LossHistory()
+model.fit(train, labels_train, batch_size=batch_size, nb_epoch=nb_epoch,
+          validation_split=0.25,validation_data=(test, labels_test), verbose=1, shuffle=True, callbacks=[history, early_stopping])
+
+score = model.evaluate(test, labels_test, verbose=0)
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
